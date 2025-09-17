@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: Carnivore_Meal MVP API
+  version: 0.1.0
+paths:
+  /api/onboarding:
+    post:
+      summary: Submit onboarding responses
+      responses:
+        '201': { description: Created }
+  /api/meal-plans:
+    post:
+      summary: Generate meal plan (1–14 days)
+      responses:
+        '201': { description: Created }
+  /api/meal-plans/{id}/regenerate:
+    post:
+      summary: Regenerate a meal/day within limits
+      responses:
+        '200': { description: Regenerated }
+  /api/shopping-list:
+    post:
+      summary: Create shopping list from plan
+      responses:
+        '201': { description: Created }
+  /api/shopping-list/{id}/export:
+    post:
+      summary: Export list (csv/pdf) or Instacart handoff (Premium)
+      responses:
+        '200': { description: Exported }
+  /api/adaptation-logs:
+    post:
+      summary: Log daily adaptation metrics
+      responses:
+        '201': { description: Logged }
+  /api/auth/register:
+    post:
+      summary: Email+password registration with 18+ confirmation
+      responses:
+        '201': { description: Registered }
+  /api/subscriptions/webhook:
+    post:
+      summary: Stripe webhook endpoint
+      responses:
+        '200': { description: OK }
