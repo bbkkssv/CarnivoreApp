@@ -83,25 +83,27 @@
   - Path: `frontend/TESTING_SUMMARY.md`
   - Action: Comprehensive system health check and build readiness confirmation.
   - Status: ✅ Complete - 100% BUILD READY ✅
-- [ ] T015 Services — Adaptation logs
+- [x] T015 Services — Adaptation logs
   - Path: `frontend/src/services/adaptationService.ts`
   - Action: Create/read logs; basic trend calc.
-- [ ] T016 Services — Subscription & billing
+  - Status: ✅ Complete & Tested - Full CRUD operations, trend analysis, category stats, validation
+- [x] T016 Services — Subscription & billing
   - Path: `frontend/src/services/subscriptionService.ts`
   - Action: Handle tier entitlements, status, downgrade logic post-grace, webhook helpers.
+  - Status: ✅ Complete & Tested - Full subscription management, tier entitlements, Stripe webhooks, grace period handling
 - [ ] T017 API — Onboarding
   - Path: `frontend/app/api/onboarding/route.ts`
   - Action: POST create/update onboarding responses.
-- [ ] T018 API — Meal plans
+- [x] T018 API — Meal plans
   - Path: `frontend/app/api/meal-plans/route.ts`
   - Action: POST generate plan; sub-route for regenerate.
-- [ ] T019 API — Shopping list
+- [x] T019 API — Shopping list
   - Path: `frontend/app/api/shopping-list/route.ts`
   - Action: POST create list; POST /{id}/export for CSV/PDF and Premium Instacart stub.
-- [ ] T020 API — Adaptation logs
+- [x] T020 API — Adaptation logs
   - Path: `frontend/app/api/adaptation-logs/route.ts`
   - Action: POST log entries; GET trends.
-- [ ] T021 API — Auth register/login
+- [x] T021 API — Auth register/login
   - Path: `frontend/app/api/auth/register/route.ts`
   - Action: Email+password with 18+ checkbox.
 - [ ] T022 API — Stripe webhook
