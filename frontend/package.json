@@ -18,9 +18,9 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.2",
     "@supabase/supabase-js": "^2.57.4",
     "next": "14.2.32",
+    "pg": "^8.16.3",
     "prisma": "^6.16.2",
     "react": "^18",
     "react-dom": "^18",

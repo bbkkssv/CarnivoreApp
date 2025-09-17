@@ -1,8 +1,11 @@
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
-const prisma = new PrismaClient()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-// Define enums to match Prisma schema
+// Define enums to match Supabase schema
 export enum NutritionalProfile {
   STRICT = 'STRICT',
   LEANER = 'LEANER',
@@ -38,35 +41,70 @@ export class PreferenceService {
   async processOnboarding(userId: string, data: OnboardingData) {
     try {
       // Create onboarding response record
-      const onboardingResponse = await prisma.onboardingResponse.create({
-        data: {
-          userId,
+      const { data: onboardingResponse, error: onboardingError } = await supabase
+        .from('onboarding_responses')
+        .insert({
+          user_id: userId,
           responses: data.responses,
-        },
-      })
+        })
+        .select()
+        .single()
 
-      // Create or update preference profile
-      const preferenceProfile = await prisma.preferenceProfile.upsert({
-        where: { userId },
-        create: {
-          userId,
-          allowedMeats: data.preferenceProfile.allowedMeats,
-          exclusions: data.preferenceProfile.exclusions,
-          prepTimePreference: data.preferenceProfile.prepTimePreference,
-          budgetRange: data.preferenceProfile.budgetRange,
-          cookingSkill: data.preferenceProfile.cookingSkill,
-          nutritionalProfile: data.preferenceProfile.nutritionalProfile,
-        },
-        update: {
-          allowedMeats: data.preferenceProfile.allowedMeats,
-          exclusions: data.preferenceProfile.exclusions,
-          prepTimePreference: data.preferenceProfile.prepTimePreference,
-          budgetRange: data.preferenceProfile.budgetRange,
-          cookingSkill: data.preferenceProfile.cookingSkill,
-          nutritionalProfile: data.preferenceProfile.nutritionalProfile,
-          updatedAt: new Date(),
-        },
-      })
+      if (onboardingError) {
+        throw new Error(`Failed to create onboarding response: ${onboardingError.message}`)
+      }
+
+      // Check if preference profile exists
+      const { data: existingProfile } = await supabase
+        .from('preference_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      let preferenceProfile
+      
+      if (existingProfile) {
+        // Update existing profile
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('preference_profiles')
+          .update({
+            allowed_meats: data.preferenceProfile.allowedMeats,
+            exclusions: data.preferenceProfile.exclusions,
+            prep_time_preference: data.preferenceProfile.prepTimePreference,
+            budget_range: data.preferenceProfile.budgetRange,
+            cooking_skill: data.preferenceProfile.cookingSkill,
+            nutritional_profile: data.preferenceProfile.nutritionalProfile,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .select()
+          .single()
+
+        if (updateError) {
+          throw new Error(`Failed to update preference profile: ${updateError.message}`)
+        }
+        preferenceProfile = updatedProfile
+      } else {
+        // Create new profile
+        const { data: newProfile, error: createError } = await supabase
+          .from('preference_profiles')
+          .insert({
+            user_id: userId,
+            allowed_meats: data.preferenceProfile.allowedMeats,
+            exclusions: data.preferenceProfile.exclusions,
+            prep_time_preference: data.preferenceProfile.prepTimePreference,
+            budget_range: data.preferenceProfile.budgetRange,
+            cooking_skill: data.preferenceProfile.cookingSkill,
+            nutritional_profile: data.preferenceProfile.nutritionalProfile,
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          throw new Error(`Failed to create preference profile: ${createError.message}`)
+        }
+        preferenceProfile = newProfile
+      }
 
       return {
         onboardingResponse,
@@ -83,9 +121,15 @@ export class PreferenceService {
    */
   async getPreferenceProfile(userId: string) {
     try {
-      const profile = await prisma.preferenceProfile.findUnique({
-        where: { userId },
-      })
+      const { data: profile, error } = await supabase
+        .from('preference_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (error) {
+        throw new Error(`Failed to fetch preference profile: ${error.message}`)
+      }
 
       if (!profile) {
         throw new Error('Preference profile not found')
@@ -103,13 +147,19 @@ export class PreferenceService {
    */
   async updatePreferenceProfile(userId: string, updates: PreferenceUpdateData) {
     try {
-      const updatedProfile = await prisma.preferenceProfile.update({
-        where: { userId },
-        data: {
+      const { data: updatedProfile, error } = await supabase
+        .from('preference_profiles')
+        .update({
           ...updates,
-          updatedAt: new Date(),
-        },
-      })
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (error) {
+        throw new Error(`Failed to update preference profile: ${error.message}`)
+      }
 
       return updatedProfile
     } catch (error) {
@@ -123,12 +173,17 @@ export class PreferenceService {
    */
   async getOnboardingResponses(userId: string) {
     try {
-      const responses = await prisma.onboardingResponse.findMany({
-        where: { userId },
-        orderBy: { completedAt: 'desc' },
-      })
+      const { data: responses, error } = await supabase
+        .from('onboarding_responses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
 
-      return responses
+      if (error) {
+        throw new Error(`Failed to fetch onboarding responses: ${error.message}`)
+      }
+
+      return responses || []
     } catch (error) {
       console.error('Error fetching onboarding responses:', error)
       throw new Error('Failed to fetch onboarding responses')
@@ -213,9 +268,16 @@ export class PreferenceService {
    */
   async hasCompletedOnboarding(userId: string): Promise<boolean> {
     try {
-      const profile = await prisma.preferenceProfile.findUnique({
-        where: { userId },
-      })
+      const { data: profile, error } = await supabase
+        .from('preference_profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error checking onboarding status:', error)
+        return false
+      }
 
       return profile !== null
     } catch (error) {
@@ -225,10 +287,11 @@ export class PreferenceService {
   }
 
   /**
-   * Cleanup - close Prisma connection
+   * Cleanup - Supabase doesn't require explicit disconnection
    */
   async disconnect() {
-    await prisma.$disconnect()
+    // Supabase client handles connection management automatically
+    return Promise.resolve()
   }
 }
 
